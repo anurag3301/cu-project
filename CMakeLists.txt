@@ -19,9 +19,11 @@ FetchContent_MakeAvailable(raylib)
 
 add_executable(checkers
   src/main.cpp
+  src/game/Board.cpp
 )
 
 target_link_libraries(checkers PRIVATE raylib)
+target_include_directories(checkers PRIVATE src)
 
 if(UNIX AND NOT APPLE)
   target_link_libraries(checkers PRIVATE m pthread dl rt X11)
