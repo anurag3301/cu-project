@@ -5,10 +5,6 @@
 namespace checkers {
 namespace {
 
-PlayerColor opposite(PlayerColor color) {
-    return color == PlayerColor::Red ? PlayerColor::Black : PlayerColor::Red;
-}
-
 bool containsMove(const std::vector<Move>& moves, const Move& candidate) {
     return std::any_of(moves.begin(), moves.end(), [&](const Move& move) {
         return move.from == candidate.from && move.to == candidate.to;
@@ -88,7 +84,7 @@ std::vector<Move> Board::pseudoMovesForPiece(Position from) const {
             auto stepPiece = pieceAt(step);
             if (!stepPiece.has_value()) {
                 moves.push_back(Move{from, step, false, std::nullopt});
-            } else if (stepPiece->color == opposite(piece->color) && isInside(jump) && isPlayableSquare(jump) && !pieceAt(jump).has_value()) {
+            } else if (stepPiece->color == oppositeColor(piece->color) && isInside(jump) && isPlayableSquare(jump) && !pieceAt(jump).has_value()) {
                 moves.push_back(Move{from, jump, true, step});
             }
         }
@@ -169,14 +165,19 @@ bool Board::applyMove(PlayerColor color, const Move& move) {
 }
 
 bool Board::hasAnyPieces(PlayerColor color) const {
+    return pieceCount(color) > 0;
+}
+
+int Board::pieceCount(PlayerColor color) const {
+    int count = 0;
     for (const auto& row : grid_) {
         for (const auto& cell : row) {
             if (cell.has_value() && cell->color == color) {
-                return true;
+                ++count;
             }
         }
     }
-    return false;
+    return count;
 }
 
 bool Board::hasAnyMoves(PlayerColor color) const {

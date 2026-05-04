@@ -21,6 +21,7 @@ public:
     bool applyMove(PlayerColor color, const Move& move);
 
     bool hasAnyPieces(PlayerColor color) const;
+    int pieceCount(PlayerColor color) const;
     bool hasAnyMoves(PlayerColor color) const;
     std::optional<PlayerColor> winner() const;
 

@@ -9,6 +9,10 @@ enum class PlayerColor {
     Black
 };
 
+inline PlayerColor oppositeColor(PlayerColor color) {
+    return color == PlayerColor::Red ? PlayerColor::Black : PlayerColor::Red;
+}
+
 struct Position {
     int row;
     int col;
