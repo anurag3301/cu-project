@@ -6,8 +6,10 @@
 
 namespace checkers {
 
-class HumanPlayer : public Player {
+class ComputerPlayer : public Player {
 public:
+    explicit ComputerPlayer(int level);
+
     bool handlesClickInput() const override;
 
     std::optional<Move> onSquareSelected(
@@ -19,10 +21,8 @@ public:
 
     std::optional<Position> selectedSquare() const override;
 
-    void onTurnEnded() override;
-
 private:
-    std::optional<Position> selectedSquare_;
+    int level_;
 };
 
 }  // namespace checkers

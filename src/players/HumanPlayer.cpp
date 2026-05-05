@@ -2,6 +2,10 @@
 
 namespace checkers {
 
+bool HumanPlayer::handlesClickInput() const {
+    return true;
+}
+
 std::optional<Move> HumanPlayer::onSquareSelected(
     const Board& board,
     PlayerColor color,
@@ -42,6 +46,10 @@ std::optional<Move> HumanPlayer::onSquareSelected(
 
 std::optional<Position> HumanPlayer::selectedSquare() const {
     return selectedSquare_;
+}
+
+std::optional<Move> HumanPlayer::chooseMove(const Board&, PlayerColor) {
+    return std::nullopt;
 }
 
 void HumanPlayer::onTurnEnded() {

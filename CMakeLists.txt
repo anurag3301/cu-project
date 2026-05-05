@@ -22,6 +22,7 @@ add_executable(checkers
   src/game/Board.cpp
   src/game/Game.cpp
   src/players/HumanPlayer.cpp
+  src/players/ComputerPlayer.cpp
 )
 
 target_link_libraries(checkers PRIVATE raylib)
