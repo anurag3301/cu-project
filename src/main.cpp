@@ -1,4 +1,4 @@
-#include <array>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -6,6 +6,7 @@
 #include "raylib.h"
 
 #include "game/Game.hpp"
+#include "players/ComputerPlayer.hpp"
 #include "players/HumanPlayer.hpp"
 
 namespace {
@@ -15,6 +16,11 @@ constexpr int kBoardPixels = 800;
 constexpr int kSquareSize = kBoardPixels / 8;
 constexpr int kBoardOffsetX = (kWindowSize - kBoardPixels) / 2;
 constexpr int kBoardOffsetY = 110;
+
+enum class OpponentMode {
+    Human,
+    Computer
+};
 
 using checkers::Board;
 using checkers::Move;
@@ -43,6 +49,19 @@ std::optional<Position> mouseToSquare(Vector2 mousePos) {
     }
 
     return Position{row, col};
+}
+
+bool buttonClicked(const Rectangle& rect, Vector2 point, bool pressed) {
+    return pressed && CheckCollisionPointRec(point, rect);
+}
+
+void drawButton(const Rectangle& rect, const char* text, bool selected) {
+    const Color bg = selected ? Color{48, 130, 95, 255} : Color{85, 85, 85, 255};
+    DrawRectangleRounded(rect, 0.2f, 8, bg);
+    DrawRectangleRoundedLinesEx(rect, 0.2f, 8, 2.0f, BLACK);
+    const int fontSize = 28;
+    const int textWidth = MeasureText(text, fontSize);
+    DrawText(text, static_cast<int>(rect.x + (rect.width - textWidth) / 2), static_cast<int>(rect.y + (rect.height - fontSize) / 2), fontSize, RAYWHITE);
 }
 
 void drawBoard(const Board& board, std::optional<Position> selected, const std::vector<Move>& selectedMoves) {
@@ -92,6 +111,30 @@ void drawBoard(const Board& board, std::optional<Position> selected, const std::
     }
 }
 
+void drawStartMenu(OpponentMode mode, int level) {
+    DrawText("Checkers", 350, 70, 64, BLACK);
+    DrawText("Select mode", 390, 180, 34, DARKGRAY);
+
+    Rectangle humanVsHuman{260, 250, 200, 70};
+    Rectangle humanVsComputer{500, 250, 200, 70};
+
+    drawButton(humanVsHuman, "Human", mode == OpponentMode::Human);
+    drawButton(humanVsComputer, "Computer", mode == OpponentMode::Computer);
+
+    if (mode == OpponentMode::Computer) {
+        DrawText("Computer level", 360, 360, 34, DARKGRAY);
+        for (int i = 1; i <= 5; ++i) {
+            Rectangle levelButton{180.0f + (i - 1) * 120.0f, 420.0f, 90.0f, 64.0f};
+            std::string text = "L" + std::to_string(i);
+            drawButton(levelButton, text.c_str(), i == level);
+        }
+        DrawText("L1 = Random, L2-L5 = increasing MCTS depth", 250, 510, 26, GRAY);
+    }
+
+    Rectangle startButton{345, 650, 270, 90};
+    drawButton(startButton, "Start", true);
+}
+
 }  // namespace
 
 int main() {
@@ -99,51 +142,122 @@ int main() {
     SetTargetFPS(60);
 
     checkers::Game game;
-    checkers::HumanPlayer redPlayer;
-    checkers::HumanPlayer blackPlayer;
 
-    std::array<Player*, 2> players = {&redPlayer, &blackPlayer};
+    OpponentMode mode = OpponentMode::Human;
+    int level = 2;
+    bool gameStarted = false;
 
-    while (!WindowShouldClose()) {
-        if (IsKeyPressed(KEY_R)) {
-            game.reset();
-            redPlayer.onTurnEnded();
-            blackPlayer.onTurnEnded();
+    std::unique_ptr<Player> redPlayer;
+    std::unique_ptr<Player> blackPlayer;
+
+    auto setupPlayers = [&]() {
+        redPlayer = std::make_unique<checkers::HumanPlayer>();
+        if (mode == OpponentMode::Human) {
+            blackPlayer = std::make_unique<checkers::HumanPlayer>();
+        } else {
+            blackPlayer = std::make_unique<checkers::ComputerPlayer>(level);
         }
 
-        if (!game.winner().has_value() && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            const auto clickedSquare = mouseToSquare(GetMousePosition());
-            const PlayerColor turn = game.currentTurn();
-            Player* currentPlayer = players[turn == PlayerColor::Red ? 0 : 1];
+        game.reset();
+        redPlayer->onTurnStarted();
+        blackPlayer->onTurnEnded();
+    };
 
-            auto chosenMove = currentPlayer->onSquareSelected(game.board(), turn, clickedSquare);
-            if (chosenMove.has_value()) {
-                if (game.tryApplyMove(*chosenMove)) {
-                    currentPlayer->onTurnEnded();
+    auto currentPlayer = [&]() -> Player* {
+        if (game.currentTurn() == PlayerColor::Red) {
+            return redPlayer.get();
+        }
+        return blackPlayer.get();
+    };
+
+    auto applyMoveAndAdvance = [&](const Move& move) {
+        Player* active = currentPlayer();
+        if (game.tryApplyMove(move)) {
+            active->onTurnEnded();
+            currentPlayer()->onTurnStarted();
+        }
+    };
+
+    while (!WindowShouldClose()) {
+        const Vector2 mousePos = GetMousePosition();
+        const bool mousePressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+
+        if (!gameStarted) {
+            Rectangle humanVsHuman{260, 250, 200, 70};
+            Rectangle humanVsComputer{500, 250, 200, 70};
+            Rectangle startButton{345, 650, 270, 90};
+
+            if (buttonClicked(humanVsHuman, mousePos, mousePressed)) {
+                mode = OpponentMode::Human;
+            }
+            if (buttonClicked(humanVsComputer, mousePos, mousePressed)) {
+                mode = OpponentMode::Computer;
+            }
+
+            if (mode == OpponentMode::Computer) {
+                for (int i = 1; i <= 5; ++i) {
+                    Rectangle levelButton{180.0f + (i - 1) * 120.0f, 420.0f, 90.0f, 64.0f};
+                    if (buttonClicked(levelButton, mousePos, mousePressed)) {
+                        level = i;
+                    }
+                }
+            }
+
+            if (buttonClicked(startButton, mousePos, mousePressed)) {
+                setupPlayers();
+                gameStarted = true;
+            }
+        } else {
+            if (IsKeyPressed(KEY_R)) {
+                setupPlayers();
+            }
+
+            if (!game.winner().has_value()) {
+                Player* active = currentPlayer();
+
+                if (active->handlesClickInput()) {
+                    if (mousePressed) {
+                        const auto clickedSquare = mouseToSquare(mousePos);
+                        auto chosenMove = active->onSquareSelected(game.board(), game.currentTurn(), clickedSquare);
+                        if (chosenMove.has_value()) {
+                            applyMoveAndAdvance(*chosenMove);
+                        }
+                    }
+                } else {
+                    auto chosenMove = active->chooseMove(game.board(), game.currentTurn());
+                    if (chosenMove.has_value()) {
+                        applyMoveAndAdvance(*chosenMove);
+                    }
                 }
             }
         }
 
-        const PlayerColor turn = game.currentTurn();
-        Player* currentPlayer = players[turn == PlayerColor::Red ? 0 : 1];
-        const auto selected = currentPlayer->selectedSquare();
-        const auto selectedMoves = selected.has_value()
-            ? game.board().legalMovesForPiece(turn, *selected)
-            : std::vector<Move>{};
-
         BeginDrawing();
         ClearBackground(Color{245, 245, 245, 255});
 
-        drawBoard(game.board(), selected, selectedMoves);
+        if (!gameStarted) {
+            drawStartMenu(mode, level);
+        } else {
+            Player* active = currentPlayer();
+            const auto selected = active->selectedSquare();
+            const auto selectedMoves = selected.has_value()
+                ? game.board().legalMovesForPiece(game.currentTurn(), *selected)
+                : std::vector<Move>{};
 
-        DrawText("Checkers", 24, 22, 42, BLACK);
+            drawBoard(game.board(), selected, selectedMoves);
 
-        std::string status = game.winner().has_value()
-            ? (std::string("Winner: ") + colorName(*game.winner()))
-            : (std::string("Turn: ") + colorName(game.currentTurn()));
-        DrawText(status.c_str(), 24, 68, 28, DARKGRAY);
+            DrawText("Checkers", 24, 22, 42, BLACK);
 
-        DrawText("Click a piece, then click destination. Press R to reset.", 24, 915, 20, GRAY);
+            std::string status = game.winner().has_value()
+                ? (std::string("Winner: ") + colorName(*game.winner()))
+                : (std::string("Turn: ") + colorName(game.currentTurn()));
+            DrawText(status.c_str(), 24, 68, 28, DARKGRAY);
+
+            std::string footer = mode == OpponentMode::Computer
+                ? ("Red: Human  Black: Computer L" + std::to_string(level) + "  (R to restart)")
+                : "Red: Human  Black: Human  (R to restart)";
+            DrawText(footer.c_str(), 24, 915, 20, GRAY);
+        }
 
         EndDrawing();
     }
