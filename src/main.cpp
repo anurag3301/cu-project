@@ -200,9 +200,6 @@ int main() {
         if (game.tryApplyMove(move)) {
             active->onTurnEnded();
             currentPlayer()->onTurnStarted();
-            if (bothComputer()) {
-                nextAiMoveTime = GetTime() + 0.5;
-            }
         }
     };
 
@@ -270,7 +267,13 @@ int main() {
                     }
                 } else {
                     if (!bothComputer() || GetTime() >= nextAiMoveTime) {
+                        const double computeStart = GetTime();
                         auto chosenMove = active->chooseMove(game.board(), game.currentTurn());
+                        const double computeElapsed = GetTime() - computeStart;
+                        if (bothComputer()) {
+                            const double remainingWait = 0.5 - computeElapsed;
+                            nextAiMoveTime = GetTime() + (remainingWait > 0.0 ? remainingWait : 0.0);
+                        }
                         if (chosenMove.has_value()) {
                             applyMoveAndAdvance(*chosenMove);
                         }
