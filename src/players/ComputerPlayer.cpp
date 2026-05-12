@@ -186,8 +186,10 @@ std::optional<Move> chooseWithMcts(const Board& board, PlayerColor color, int le
     }
 
     const unsigned int hw = std::thread::hardware_concurrency();
-    const unsigned int threadCount = std::max(1u, std::min(8u, hw == 0 ? 4u : hw));
-    const int perThread = std::max(1, totalIterations / static_cast<int>(threadCount));
+    const unsigned int preferredThreads = hw == 0 ? 8u : (hw * 2u);
+    const unsigned int threadCount = std::max(4u, std::min(32u, preferredThreads));
+    const int baseIterations = totalIterations / static_cast<int>(threadCount);
+    const int remainder = totalIterations % static_cast<int>(threadCount);
 
     std::vector<std::vector<RootStat>> threadStats(threadCount);
     std::vector<std::thread> workers;
@@ -195,9 +197,13 @@ std::optional<Move> chooseWithMcts(const Board& board, PlayerColor color, int le
 
     std::random_device rd;
     for (unsigned int t = 0; t < threadCount; ++t) {
+        const int iterations = baseIterations + (static_cast<int>(t) < remainder ? 1 : 0);
+        if (iterations <= 0) {
+            continue;
+        }
         const unsigned int seed = rd() ^ (static_cast<unsigned int>(std::chrono::steady_clock::now().time_since_epoch().count())) ^ (t * 911U);
-        workers.emplace_back([&, t, seed]() {
-            threadStats[t] = runWorkerTree(board, color, perThread, seed);
+        workers.emplace_back([&, t, seed, iterations]() {
+            threadStats[t] = runWorkerTree(board, color, iterations, seed);
         });
     }
 
