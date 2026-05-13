@@ -146,6 +146,21 @@ void drawStartMenu(PlayerKind redKind, int redLevel, PlayerKind blackKind, int b
     drawButton(startButton, "Start", true);
 }
 
+void drawGameOverOverlay(PlayerColor winner) {
+    Rectangle panel{230.0f, 280.0f, 500.0f, 300.0f};
+    DrawRectangle(0, 0, kWindowSize, kWindowSize, Color{0, 0, 0, 120});
+    DrawRectangleRounded(panel, 0.15f, 10, Color{245, 245, 245, 255});
+    DrawRectangleRoundedLinesEx(panel, 0.15f, 10, 2.0f, BLACK);
+
+    DrawText("Game Over", 380, 330, 44, BLACK);
+
+    std::string winnerText = std::string("Winner: ") + colorName(winner);
+    DrawText(winnerText.c_str(), 345, 390, 34, DARKGRAY);
+
+    Rectangle menuButton{355.0f, 470.0f, 250.0f, 74.0f};
+    drawButton(menuButton, "Main Menu", true);
+}
+
 }  // namespace
 
 int main() {
@@ -254,6 +269,11 @@ int main() {
                 setupPlayers();
             }
 
+            Rectangle menuButton{355.0f, 470.0f, 250.0f, 74.0f};
+            if (game.winner().has_value() && buttonClicked(menuButton, mousePos, mousePressed)) {
+                gameStarted = false;
+            }
+
             if (!game.winner().has_value()) {
                 Player* active = currentPlayer();
 
@@ -310,6 +330,10 @@ int main() {
             std::string footer = redSide + "  " + blackSide + "  (R to restart)";
 
             DrawText(footer.c_str(), 24, 915, 20, GRAY);
+
+            if (game.winner().has_value()) {
+                drawGameOverOverlay(*game.winner());
+            }
         }
 
         EndDrawing();
