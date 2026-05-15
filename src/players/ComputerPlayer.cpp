@@ -34,9 +34,22 @@ struct RootStat {
 };
 
 int levelIterations(int level) {
-    const std::array<int, 5> budgets = {0, 1400, 3800, 8000, 16000};
+    const std::array<int, 5> budgets = {0, 350, 1000, 2500, 8000};
     const int idx = std::clamp(level, 1, 5) - 1;
     return budgets[idx];
+}
+
+double levelRandomMoveChance(int level) {
+    switch (std::clamp(level, 1, 5)) {
+        case 2:
+            return 0.60;
+        case 3:
+            return 0.40;
+        case 4:
+            return 0.20;
+        default:
+            return 0.0;
+    }
 }
 
 int evaluateDraw(const Board& board, PlayerColor rootColor) {
@@ -277,10 +290,20 @@ std::optional<Move> ComputerPlayer::chooseMove(const Board& board, PlayerColor c
         return std::nullopt;
     }
 
+    static thread_local std::mt19937 rng(std::random_device{}());
+
     if (level_ <= 1) {
-        static thread_local std::mt19937 rng(std::random_device{}());
         std::uniform_int_distribution<size_t> pick(0, legal.size() - 1);
         return legal[pick(rng)];
+    }
+
+    const double randomChance = levelRandomMoveChance(level_);
+    if (randomChance > 0.0) {
+        std::uniform_real_distribution<double> roll(0.0, 1.0);
+        if (roll(rng) < randomChance) {
+            std::uniform_int_distribution<size_t> pick(0, legal.size() - 1);
+            return legal[pick(rng)];
+        }
     }
 
     return chooseWithMcts(board, color, level_);
