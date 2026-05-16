@@ -6,6 +6,8 @@ START_COMMIT="46c27d9a1c6fee8feebd1a33a3553f6e54ffd9b5"
 RANGE_INPUT="may1-may21 2026"
 ACTUAL_DAYS=10
 TIMEZONE_OFFSET="+0530"
+REWRITE_NAME="Your Name"
+REWRITE_EMAIL="your.email@example.com"
 
 usage() {
   cat <<USAGE
@@ -17,6 +19,8 @@ Config is defined at top of this script:
 - RANGE_INPUT
 - ACTUAL_DAYS
 - TIMEZONE_OFFSET
+- REWRITE_NAME
+- REWRITE_EMAIL
 USAGE
 }
 
@@ -39,6 +43,14 @@ if ! [[ "$ACTUAL_DAYS" =~ ^[0-9]+$ ]] || (( ACTUAL_DAYS <= 0 )); then
 fi
 if ! [[ "$TIMEZONE_OFFSET" =~ ^[+-][0-9]{4}$ ]]; then
   echo "error: TIMEZONE_OFFSET must look like +0200 or -0500" >&2
+  exit 1
+fi
+if [[ -z "$REWRITE_NAME" ]]; then
+  echo "error: REWRITE_NAME must not be empty" >&2
+  exit 1
+fi
+if [[ -z "$REWRITE_EMAIL" ]]; then
+  echo "error: REWRITE_EMAIL must not be empty" >&2
   exit 1
 fi
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -152,6 +164,8 @@ echo "start_commit: $START_COMMIT"
 echo "rewrite_count: $commit_count"
 echo "range: $START_DATE .. $END_DATE"
 echo "timezone: $TIMEZONE_OFFSET"
+echo "rewrite_name: $REWRITE_NAME"
+echo "rewrite_email: $REWRITE_EMAIL"
 echo "chosen_days (${#CHOSEN_DATES[@]}): ${CHOSEN_DATES[*]}"
 
 if (( DRY_RUN == 1 )); then
@@ -168,6 +182,8 @@ echo "created backup tag: $backup_tag"
 
 export FILTER_BRANCH_SQUELCH_WARNING=1
 export MAP_FILE="$(pwd)/$mapping_file"
+export REWRITE_NAME
+export REWRITE_EMAIL
 
 git filter-branch -f --env-filter '
 new_date=$(awk -v c="$GIT_COMMIT" '\''$1==c{print substr($0, index($0, $2)); exit}'\'' "$MAP_FILE")
@@ -175,6 +191,10 @@ if [ -n "$new_date" ]; then
   export GIT_AUTHOR_DATE="$new_date"
   export GIT_COMMITTER_DATE="$new_date"
 fi
+export GIT_AUTHOR_NAME="$REWRITE_NAME"
+export GIT_AUTHOR_EMAIL="$REWRITE_EMAIL"
+export GIT_COMMITTER_NAME="$REWRITE_NAME"
+export GIT_COMMITTER_EMAIL="$REWRITE_EMAIL"
 ' -- "${START_COMMIT}^..HEAD"
 
 echo "rewrite complete on branch $branch"
