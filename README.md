@@ -2,6 +2,9 @@
 
 A desktop checkers game written in C++17 using Raylib for rendering/input and CMake for builds.
 
+<img width="1090" height="1118" alt="image" src="https://github.com/user-attachments/assets/0ed7e7af-3c4f-4757-8566-2ef92dff23b7" />
+
+
 ## What This Project Is
 
 This repository contains a full checkers implementation with:
