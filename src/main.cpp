@@ -140,7 +140,7 @@ void drawStartMenu(PlayerKind redKind, int redLevel, PlayerKind blackKind, int b
     drawSideConfig(260, "Red", redKind, redLevel);
     drawSideConfig(360, "Black", blackKind, blackLevel);
 
-    DrawText("For computer sides: level 1 is random, level 2-5 use deeper MCTS", 120, 470, 28, GRAY);
+    DrawText("For computer sides: level 1 is random, level 2-5 use deeper MCTS", 50, 500, 28, GRAY);
 
     Rectangle startButton{345, 650, 270, 90};
     drawButton(startButton, "Start", true);
