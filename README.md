@@ -15,6 +15,33 @@ This repository contains a full checkers implementation with:
 
 The game starts with a setup menu where Red and Black can each be configured independently as `Human` or `Computer`.
 
+## Build
+
+### Prerequisites
+- CMake 3.16+
+- C++17 compiler (GCC/Clang/MSVC with C++17 support)
+- Internet access on first configure to fetch Raylib via CMake `FetchContent`
+
+### Commands
+
+```bash
+cmake -S . -B build
+cmake --build build -j$(nproc)
+```
+
+## Run
+
+```bash
+./build/checkers
+```
+
+## Controls
+
+- In menu: click to configure Red/Black side type and AI levels, then click `Start`
+- In-game: click piece then destination to move (for human-controlled side)
+- `R`: restart match with current configuration
+- On game over: click `Main Menu` to return to setup screen
+
 ## What It Does
 
 - Draws and runs an 8x8 checkers board UI
@@ -53,33 +80,4 @@ When both sides are computer players, moves are paced to ~0.5s per turn includin
   - turn loop integration for Human/Computer combinations
   - game-over overlay + navigation back to menu
 
-## Build
 
-### Prerequisites
-- CMake 3.16+
-- C++17 compiler (GCC/Clang/MSVC with C++17 support)
-- Internet access on first configure to fetch Raylib via CMake `FetchContent`
-
-### Commands
-
-```bash
-cmake -S . -B build
-cmake --build build -j$(nproc)
-```
-
-## Run
-
-```bash
-./build/checkers
-```
-
-## Controls
-
-- In menu: click to configure Red/Black side type and AI levels, then click `Start`
-- In-game: click piece then destination to move (for human-controlled side)
-- `R`: restart match with current configuration
-- On game over: click `Main Menu` to return to setup screen
-
-## Extra utility
-
-- `rewrite_commit_dates.sh` rewrites commit dates in a selected range and can also overwrite commit author/committer name and email.
